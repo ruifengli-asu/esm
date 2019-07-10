@@ -1,0 +1,36 @@
+# Optional RBAC config
+apiVersion: "rbac.istio.io/v1alpha1"
+kind: ServiceRole
+metadata:
+  name: hello-circuitbreaking-viewer
+  namespace: http-echo
+spec:
+  rules:
+  - services: ["hello-circuitbreaking.myproject.svc.cluster.local"]
+    methods: ["GET", "HEAD"]
+---
+apiVersion: "rbac.istio.io/v1alpha1"
+kind: ServiceRoleBinding
+metadata:
+  name: istio-ingress-binding-hello-circuitbreaking
+  namespace: http-echo
+spec:
+  subjects:
+  - properties:
+      source.namespace: "istio-system"
+  roleRef:
+    kind: ServiceRole
+    name: "hello-circuitbreaking-viewer"
+---
+apiVersion: "rbac.istio.io/v1alpha1"
+kind: ServiceRoleBinding
+metadata:
+  name: istio-ingress-binding-hello-circuitbreaking-2
+  namespace: http-echo
+spec:
+  subjects:
+  - properties:
+      source.namespace: "http-echo"
+  roleRef:
+    kind: ServiceRole
+    name: "hello-circuitbreaking-viewer"

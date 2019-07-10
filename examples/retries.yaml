@@ -1,0 +1,86 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: hello-retries-1
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: hello-retries
+        version: v1
+    spec:
+      containers:
+      - name: hello-retries
+        image: wardviaene/http-echo:latest
+        env:
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: TEXT
+          value: hello, this is v1 - $(MY_POD_NAME)
+        ports:
+        - name: http
+          containerPort: 8080
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: hello-retries-2
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: hello-retries
+        version: latency
+    spec:
+      containers:
+      - name: hello-retries
+        image: wardviaene/http-echo:latest
+        env:
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: TEXT
+          value: hello, this is latency pod - $(MY_POD_NAME)
+        - name: LATENCY
+          value: 5
+        ports:
+        - name: http
+          containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-retries
+  labels:
+    app: hello-retries
+spec:
+  selector:
+    app: hello-retries
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: hello-retries
+spec:
+  hosts:
+  - "hello-retries.example.com"
+  gateways:
+  - helloworld-gateway
+  http:
+  - route:
+    - destination:
+        host: "hello-retries.myproject.svc.cluster.local"
+    timeout: 10s 
+    retries:
+      attempts: 3
+      perTryTimeout: 3s 
+      retryOn: gateway-error,connect-failure,refused-stream

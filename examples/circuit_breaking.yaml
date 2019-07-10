@@ -1,0 +1,77 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: hello-circuitbreaking
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: hello-circuitbreaking
+    spec:
+      containers:
+      - name: hello-circuitbreaking
+        image: wardviaene/http-echo:latest
+        env:
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: TEXT
+          value: hello, this is $(MY_POD_NAME)
+        ports:
+        - name: http
+          containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-circuitbreaking
+  labels:
+    app: hello-circuitbreaking
+spec:
+  selector:
+    app: hello-circuitbreaking
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: hello-circuitbreaking
+spec:
+  host: hello-circuitbreaking
+  # uncomment to enable mutual TLS
+  trafficPolicy:
+  #  tls:
+  #    mode: ISTIO_MUTUAL
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 1
+        maxRequestsPerConnection: 1
+      tcp:
+        maxConnections: 1
+    outlierDetection:
+      baseEjectionTime: 180.000s
+      consecutiveErrors: 1
+      interval: 1.000s
+      maxEjectionPercent: 100
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: helloworld-circuitbreaking
+spec:
+  hosts:
+  - "hello-circuitbreaking.example.com"
+  gateways:
+  - helloworld-gateway
+  http:
+  - route:
+    - destination:
+        host: hello-circuitbreaking.myproject.svc.cluster.local
+        port:
+          number: 8080
+---
