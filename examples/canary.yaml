@@ -91,9 +91,9 @@ metadata:
 spec:
   host: hello-canary.myproject.svc.cluster.local
   # uncomment to enable mutual TLS
-  #trafficPolicy:
-  #  tls:
-  #    mode: ISTIO_MUTUAL
+  trafficPolicy:
+   tls:
+     mode: ISTIO_MUTUAL
   subsets:
   - name: v1
     labels:
