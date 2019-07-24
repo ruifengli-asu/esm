@@ -13,7 +13,7 @@ spec:
       # The first matching override is applied.
       # A requestcount instance is checked against override dimensions.
       overrides:
-      # The following override applies to 'reviews' regardless
+      # The following override applies to 'hello' regardless
       # of the source.
       - dimensions:
           destination: hello
